@@ -6,6 +6,10 @@ name = "pypi"
 [packages]
 fastapi = {extras = ["standard"], version = "*"}
 llama-index-llms-gemini = "*"
+llama-index-readers-file = "*"
+pydantic-settings = "*"
+"llama-index.embeddings.gemini" = "*"
+llama-index-llms-google-genai = "*"
 
 [dev-packages]
 
