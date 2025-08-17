@@ -1,5 +1,3 @@
-# Placeholder for ID generation utilities
-
 import uuid
 
 def new_id() -> str:

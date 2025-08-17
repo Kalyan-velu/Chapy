@@ -1,11 +1,11 @@
+from storage.paths import source_pdf_path
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, Settings, StorageContext
-from llama_index.core.extractors import TitleExtractor
+from llama_index.core.extractors import TitleExtractor, QuestionsAnsweredExtractor
 from llama_index.core.ingestion import IngestionPipeline
-from llama_index.core.node_parser import SentenceSplitter
-from llama_index.core import SimpleDirectoryReader
+from llama_index.core.node_parser import SentenceSplitter, TokenTextSplitter
 from llama_index.core.vector_stores import SimpleVectorStore
 from llama_index.embeddings.google_genai import GoogleGenAIEmbedding
-from google.genai.types import EmbedContentConfig
+from llama_index.readers.file import PDFReader
 from llama_index.llms.google_genai import GoogleGenAI
 import os
 
@@ -19,39 +19,49 @@ Settings.llm = GoogleGenAI()
 Settings.embed_model = GoogleGenAIEmbedding(
     model_name="text-embedding-004",
     embed_batch_size=100,
-    # can pass in the api key directly
-    # api_key="...",
-    # or pass in a vertexai_config
-    # vertexai_config={
-    #     "project": "...",
-    #     "location": "...",
-    # }
-    # can also pass in an embedding_config
-    # embedding_config=EmbedContentConfig(...)
 )
 
-filename_fn = lambda filename: {"file_name": filename}
+document_indexes={}
 
-# automatically sets the metadata of each document according to filename_fn
-documents = SimpleDirectoryReader(
-    "../documents", file_metadata=filename_fn
-).load_data()
+def remove_index(document_id: str):
+    document_indexes.pop(document_id, None)
 
-vector_store=SimpleVectorStore()
+def get_query_engine(document_id: str):
+    index = document_indexes.get(document_id)
+    if index is None:
+        index = get_index(document_id)
+    return index.as_query_engine()
 
-# create the pipeline with transformations
-pipeline = IngestionPipeline(
-    transformations=[
-        SentenceSplitter(chunk_size=25, chunk_overlap=0),
-        TitleExtractor()
-    ],
-    vector_store=vector_store
-)
 
-node=pipeline.run(documents=documents)
+def get_index(document_id: str ):
+    # automatically sets the metadata of each document according to filename_fn
+    documents = PDFReader().load_data(
+        file=source_pdf_path(document_id=document_id),
+    )
 
-index = VectorStoreIndex(node,storage_context=StorageContext.from_defaults(vector_store=vector_store))
+    vector_store = SimpleVectorStore()
 
-query_engine = index.as_query_engine()
-response=query_engine.query("Who is Kalyan?")
-print(response)
+    text_splitter = TokenTextSplitter(
+        separator=" ", chunk_size=512, chunk_overlap=128
+    )
+    title_extractor = TitleExtractor(nodes=5)
+    qa_extractor = QuestionsAnsweredExtractor(questions=3)
+    token_text_splitter = TokenTextSplitter(
+        separator=" ", chunk_size=512, chunk_overlap=128
+    )
+    # create the pipeline with transformations
+    pipeline = IngestionPipeline(
+        transformations=[
+            text_splitter, qa_extractor,title_extractor, token_text_splitter
+        ],
+        vector_store=vector_store
+
+    )
+
+    node = pipeline.run(documents=documents, in_place=True,
+                        show_progress=True, )
+
+    index = VectorStoreIndex(node, storage_context=StorageContext.from_defaults(vector_store=vector_store))
+    document_indexes[document_id]=index
+    return index
+

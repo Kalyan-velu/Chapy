@@ -14,6 +14,7 @@ def create_document_from_upload(upload: UploadFile, max_upload_mb: int = DEFAULT
     """
     # Basic content type / extension checks
     filename = upload.filename or "file.pdf"
+    print("Filename: ", filename)
     content_type = getattr(upload, "content_type", "application/octet-stream")
     if not (filename.lower().endswith(".pdf") or content_type in ("application/pdf",)):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")

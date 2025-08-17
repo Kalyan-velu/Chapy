@@ -31,10 +31,6 @@ def _write_file_stream(upload: UploadFile, dest_path: Path, max_bytes: Optional[
 
 
 def save_upload_as_source_pdf(document_id: str, upload: UploadFile, *, max_bytes: Optional[int] = None) -> Dict:
-    """Save uploaded file to source.pdf under the document folder.
-
-    Returns a metadata dict with name, size_bytes, and paths.
-    """
     ensure_storage_root()
     root = doc_root(document_id)
     root.mkdir(parents=True, exist_ok=True)
@@ -59,7 +55,7 @@ def save_upload_as_source_pdf(document_id: str, upload: UploadFile, *, max_bytes
 
     meta = {
         "id": document_id,
-        "name": getattr(upload, "filename", "source.pdf") or "source.pdf",
+        "name": getattr(upload, "filename", upload.filename) or "source.pdf",
         "size_bytes": size,
         "status": "processing",
     }

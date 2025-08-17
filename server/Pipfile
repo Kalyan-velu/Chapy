@@ -10,6 +10,8 @@ llama-index-readers-file = "*"
 pydantic-settings = "*"
 "llama-index.embeddings.gemini" = "*"
 llama-index-llms-google-genai = "*"
+"llama-index.embeddings.google-genai" = "*"
+llama-index = "*"
 
 [dev-packages]
 
